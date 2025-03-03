@@ -1,0 +1,11 @@
+---
+backup_dir: /var/ansible-awx
+backup_file: "wordpress_backup_{{ lookup('pipe', 'date +%Y%m%d_%H%M%S') }}.sql.gz"
+mysql_user: your_mysql_user
+mysql_password: your_mysql_password
+mysql_db: your_wordpress_database
+ftp_host: your_ftp_host
+ftp_user: your_ftp_user
+ftp_password: your_ftp_password
+ftp_backup_path: /path/to/ftp/backup/directory
+

@@ -1,0 +1,49 @@
+---
+- name: Create backup directory
+  file:
+    path: "{{ backup_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Backup WordPress database
+  mysql_db:
+    name: "{{ mysql_db }}"
+    state: dump
+    target: "{{ backup_dir }}/{{ backup_file }}"
+    user: "{{ mysql_user }}"
+    password: "{{ mysql_password }}"
+    compress: true
+
+- name: Transfer backup to FTP server
+  community.general.ftp:
+    host: "{{ ftp_host }}"
+    user: "{{ ftp_user }}"
+    password: "{{ ftp_password }}"
+    dest: "{{ ftp_backup_path }}/{{ backup_file }}"
+    src: "{{ backup_dir }}/{{ backup_file }}"
+    mode: "passive"
+    state: present
+
+- name: Remove local backup file
+  file:
+    path: "{{ backup_dir }}/{{ backup_file }}"
+    state: absent
+
+- name: Find files older than 3 days on FTP
+  find:
+    paths: "{{ ftp_backup_path }}"
+    age: 3d
+    recurse: false
+  register: old_backups
+
+- name: Remove old backups from FTP
+  community.general.ftp:
+    host: "{{ ftp_host }}"
+    user: "{{ ftp_user }}"
+    password: "{{ ftp_password }}"
+    path: "{{ item.path }}"
+    mode: "passive"
+    state: absent
+  loop: "{{ old_backups.files }}"
+  when: old_backups.files is defined
+

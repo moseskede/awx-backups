@@ -1,0 +1,6 @@
+---
+- name: Execute WordPress Backup
+  hosts: databases
+  become: true
+  roles:
+    - role: wordpress_backup
