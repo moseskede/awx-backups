@@ -21,9 +21,10 @@
 - name: Upload backup to FTP server
   shell: |
     curl -T {{ backup_dir }}/wordpress_{{ timestamp.stdout }}.sql.gz \
-    ftp://{{ ftp_user }}:{{ ftp_password }}@{{ ftp_host }}{{ ftp_path }}/
+    sftp://{{ ftp_user }}:{{ ftp_password }}@{{ ftp_host }}{{ ftp_path }}/
   args:
     executable: /bin/bash
+
 
 - name: Remove local backup file
   file:
