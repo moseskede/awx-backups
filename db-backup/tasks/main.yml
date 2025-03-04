@@ -1,41 +1,37 @@
----
 - name: Create backup directory
-  file:
-    path: "{{ backup_dir }}"
-    state: directory
-    mode: '0755'
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
 
-- name: Backup WordPress database using shell
-  shell: >
-    mysqldump
-    --user={{ mysql_user }}
-    --password={{ mysql_password }}
-    --host={{ mysql_host | default('localhost') }}
-    {{ mysql_db }}
-    | gzip > {{ backup_dir }}/{{ backup_file }}
-  args:
-    executable: /bin/bash
+    - name: Backup WordPress database using shell
+      shell: >
+        mysqldump
+        --user={{ mysql_user }}
+        --password={{ mysql_password }}
+        --host={{ mysql_host }}
+        {{ mysql_db }} | gzip > {{ backup_dir }}/{{ backup_file }}
+      args:
+        executable: /bin/bash
+        
+- name: Debug backup file path
+  debug:
+    msg: "Backup file path is {{ backup_dir }}/{{ backup_file }}"
 
-- name: Transfer backup to FTP server using shell
-  shell: >
-    ftp -n -i {{ ftp_host }} <<EOF
-    user {{ ftp_user }} {{ ftp_password }}
-    passive
-    put {{ backup_dir }}/{{ backup_file }} {{ ftp_backup_path }}/{{ backup_file }}
-    bye
-    EOF
-  args:
-    executable: /bin/bash
+    - name: Transfer backup to remote server using SCP
+      shell: >
+        scp {{ backup_dir }}/{{ backup_file }} {{ remote_user }}@{{ remote_host }}:{{ remote_backup_path }}/{{ backup_file }}
+      args:
+        executable: /bin/bash
 
-- name: Remove local backup file
-  file:
-    path: "{{ backup_dir }}/{{ backup_file }}"
-    state: absent
+    - name: Remove local backup file
+      file:
+        path: "{{ backup_dir }}/{{ backup_file }}"
+        state: absent
 
-- name: Find files older than 3 days on FTP
-  shell: >
-    find {{ ftp_backup_path }} -type f -mtime +3 -print0 | xargs -0 rm
-  args:
-    executable: /bin/bash
-  ignore_errors: true
-
+    - name: Find files older than 3 days on remote server
+      shell: >
+        ssh {{ remote_user }}@{{ remote_host }} "find {{ remote_backup_path }} -type f -mtime +3 -delete"
+      args:
+        executable: /bin/bash
+      ignore_errors: true
