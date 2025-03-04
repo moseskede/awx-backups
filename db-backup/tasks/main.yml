@@ -1,62 +1,37 @@
----
-galaxy_info:
-  role_name: wordpress_backup
-  author: your_name  # نام شما
-  description: Backup WordPress database and transfer to remote server using SCP.
-  company: Your Company (optional)
-  license: MIT  # یا لایسنس مورد نظر
-  min_ansible_version: 2.9  # حداقل ورژن انسیبل مورد نیاز
-  platforms:
-    - name: EL
-      versions:
-        - 7
-        - 8
-    - name: Ubuntu
-      versions:
-        - all
-  galaxy_tags:
-    - wordpress
-    - backup
-    - scp
+- name: Create backup directory
+  file:
+    path: "{{ backup_dir }}"
+    state: directory
+    mode: '0755'
 
-dependencies: []
+- name: Backup WordPress database using shell
+  shell: >
+    mysqldump
+    --user={{ mysql_user }}
+    --password={{ mysql_password }}
+    --host={{ mysql_host }}
+    {{ mysql_db }} | gzip > {{ backup_dir }}/{{ backup_file }}
+  args:
+    executable: /bin/bash
 
-### نقش اصلی
-tasks:
-  - name: Create backup directory
-    file:
-      path: "{{ backup_dir }}"
-      state: directory
-      mode: '0755'
+- name: Debug backup file path
+  debug:
+    msg: "Backup file path is {{ backup_dir }}/{{ backup_file }}"
 
-  - name: Backup WordPress database using shell
-    shell: >
-      mysqldump
-      --user={{ mysql_user }}
-      --password={{ mysql_password }}
-      --host={{ mysql_host }}
-      {{ mysql_db }} | gzip > {{ backup_dir }}/{{ backup_file }}
-    args:
-      executable: /bin/bash
+- name: Transfer backup to remote server using SCP
+  shell: >
+    scp {{ backup_dir }}/{{ backup_file }} {{ remote_user }}@{{ remote_host }}:{{ remote_backup_path }}/{{ backup_file }}
+  args:
+    executable: /bin/bash
 
-  - name: Debug backup file path
-    debug:
-      msg: "Backup file path is {{ backup_dir }}/{{ backup_file }}"
+- name: Remove local backup file
+  file:
+    path: "{{ backup_dir }}/{{ backup_file }}"
+    state: absent
 
-  - name: Transfer backup to remote server using SCP
-    shell: >
-      scp {{ backup_dir }}/{{ backup_file }} {{ remote_user }}@{{ remote_host }}:{{ remote_backup_path }}/{{ backup_file }}
-    args:
-      executable: /bin/bash
-
-  - name: Remove local backup file
-    file:
-      path: "{{ backup_dir }}/{{ backup_file }}"
-      state: absent
-
-  - name: Find files older than 3 days on remote server
-    shell: >
-      ssh {{ remote_user }}@{{ remote_host }} "find {{ remote_backup_path }} -type f -mtime +3 -delete"
-    args:
-      executable: /bin/bash
-    ignore_errors: true
+- name: Find files older than 3 days on remote server
+  shell: >
+    ssh {{ remote_user }}@{{ remote_host }} "find {{ remote_backup_path }} -type f -mtime +3 -delete"
+  args:
+    executable: /bin/bash
+  ignore_errors: true
