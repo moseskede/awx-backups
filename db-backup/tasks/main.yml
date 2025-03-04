@@ -14,9 +14,9 @@
       args:
         executable: /bin/bash
         
-- name: Debug backup file path
-  debug:
-    msg: "Backup file path is {{ backup_dir }}/{{ backup_file }}"
+    - name: Debug backup file path
+      debug:
+        msg: "Backup file path is {{ backup_dir }}/{{ backup_file }}"
 
     - name: Transfer backup to remote server using SCP
       shell: >
