@@ -26,6 +26,7 @@
     executable: /bin/bash
 
 
+
 - name: Remove local backup file
   file:
     path: "{{ backup_dir }}/wordpress_{{ timestamp.stdout }}.sql.gz"
