@@ -3,4 +3,4 @@
   hosts: databases
   become: true
   roles:
-    - role: wordpress_backup
+    - role: db-backup
