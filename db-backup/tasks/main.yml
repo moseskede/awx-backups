@@ -5,14 +5,16 @@
     state: directory
     mode: '0755'
 
-- name: Backup WordPress database
-  community.mysql.mysql_db:
-    name: "{{ mysql_db }}"
-    state: dump
-    target: "{{ backup_dir }}/{{ backup_file }}"
-    user: "{{ mysql_user }}"
-    password: "{{ mysql_password }}"
-    compress: true
+- name: Backup WordPress database using shell
+  shell: >
+    mysqldump
+    --user={{ mysql_user }}
+    --password={{ mysql_password }}
+    --host={{ mysql_host | default('localhost') }}  # Add host if not localhost
+    {{ mysql_db }}
+    | gzip > {{ backup_dir }}/{{ backup_file }}
+  args:
+    executable: /bin/bash  # Specify bash explicitly
 
 - name: Transfer backup to FTP server
   community.general.ftp:
