@@ -6,7 +6,7 @@
     mode: '0755'
 
 - name: Backup WordPress database
-  mysql_db:
+  community.mysql.mysql_db:
     name: "{{ mysql_db }}"
     state: dump
     target: "{{ backup_dir }}/{{ backup_file }}"
@@ -46,4 +46,3 @@
     state: absent
   loop: "{{ old_backups.files }}"
   when: old_backups.files is defined
-
