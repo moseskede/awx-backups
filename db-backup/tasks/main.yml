@@ -10,21 +10,22 @@
     mysqldump
     --user={{ mysql_user }}
     --password={{ mysql_password }}
-    --host={{ mysql_host | default('localhost') }}  # Add host if not localhost
+    --host={{ mysql_host | default('localhost') }}
     {{ mysql_db }}
     | gzip > {{ backup_dir }}/{{ backup_file }}
   args:
-    executable: /bin/bash  # Specify bash explicitly
+    executable: /bin/bash
 
-- name: Transfer backup to FTP server
-  community.general.ftp:
-    host: "{{ ftp_host }}"
-    user: "{{ ftp_user }}"
-    password: "{{ ftp_password }}"
-    dest: "{{ ftp_backup_path }}/{{ backup_file }}"
-    src: "{{ backup_dir }}/{{ backup_file }}"
-    mode: "passive"
-    state: present
+- name: Transfer backup to FTP server using shell
+  shell: >
+    ftp -n -i {{ ftp_host }} <<EOF
+    user {{ ftp_user }} {{ ftp_password }}
+    passive
+    put {{ backup_dir }}/{{ backup_file }} {{ ftp_backup_path }}/{{ backup_file }}
+    bye
+    EOF
+  args:
+    executable: /bin/bash
 
 - name: Remove local backup file
   file:
@@ -32,19 +33,9 @@
     state: absent
 
 - name: Find files older than 3 days on FTP
-  find:
-    paths: "{{ ftp_backup_path }}"
-    age: 3d
-    recurse: false
-  register: old_backups
+  shell: >
+    find {{ ftp_backup_path }} -type f -mtime +3 -print0 | xargs -0 rm
+  args:
+    executable: /bin/bash
+  ignore_errors: true
 
-- name: Remove old backups from FTP
-  community.general.ftp:
-    host: "{{ ftp_host }}"
-    user: "{{ ftp_user }}"
-    password: "{{ ftp_password }}"
-    path: "{{ item.path }}"
-    mode: "passive"
-    state: absent
-  loop: "{{ old_backups.files }}"
-  when: old_backups.files is defined
